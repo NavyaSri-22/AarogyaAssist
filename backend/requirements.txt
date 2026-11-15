@@ -1,3 +1,16 @@
 pwdlib[argon2]
 PyJWT
 email-validator
+fastapi
+uvicorn[standard]
+python-multipart
+pymupdf
+pandas
+pydantic-settings
+groq
+python-dotenv
+pytesseract
+Pillow
+opencv-python-headless
+sqlalchemy
+pymysql
