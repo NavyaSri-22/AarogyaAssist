@@ -1,0 +1,162 @@
+
+.profile-settings-page {
+  padding: 28px;
+  color: #29435d;
+}
+
+.profile-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.profile-settings-header span {
+  color: #3886c5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.profile-settings-header h1 {
+  margin: 8px 0;
+  font-size: 27px;
+}
+
+.profile-settings-header p,
+.profile-card-heading p,
+.profile-logout-card p {
+  color: #8799aa;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.profile-avatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5f2ff;
+  color: #287fc0;
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.profile-settings-card,
+.profile-logout-card {
+  background: white;
+  border: 1px solid #e7eef5;
+  border-radius: 15px;
+  padding: 23px;
+  margin-bottom: 18px;
+}
+
+.profile-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #3284c2;
+  margin-bottom: 20px;
+}
+
+.profile-card-heading h2,
+.profile-logout-card h2 {
+  font-size: 16px;
+  color: #304b65;
+  margin: 0 0 5px;
+}
+
+.profile-settings-card form {
+  max-width: 550px;
+}
+
+.profile-settings-card label {
+  display: block;
+  margin: 15px 0 7px;
+  color: #526a80;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profile-settings-card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid #dce7f0;
+  border-radius: 8px;
+  outline: none;
+  font-size: 13px;
+}
+
+.profile-settings-card input:focus {
+  border-color: #6ba5d5;
+}
+
+.profile-save-button,
+.profile-logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 17px;
+  margin-top: 18px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.profile-save-button {
+  background: #347fc1;
+  color: white;
+}
+
+.profile-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-logout-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.profile-logout-button {
+  background: #fff0ef;
+  color: #bd514c;
+  margin: 0;
+}
+
+.profile-success,
+.profile-error {
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 13px;
+}
+
+.profile-success {
+  color: #23734e;
+  background: #effaf4;
+}
+
+.profile-error {
+  color: #b84444;
+  background: #fff0ef;
+}
+
+@media (max-width: 600px) {
+  .profile-settings-page {
+    padding: 16px;
+  }
+
+  .profile-logout-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,313 @@
+
+.health-timeline-page {
+  padding: 28px;
+  color: #29435d;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.timeline-eyebrow {
+  color: #3886c5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.timeline-header h1 {
+  margin: 8px 0;
+  font-size: 27px;
+}
+
+.timeline-header p {
+  margin: 0;
+  color: #8799aa;
+  font-size: 13px;
+}
+
+.timeline-header-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: #3286c7;
+  background: #eaf4ff;
+  border-radius: 14px;
+}
+
+.timeline-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 22px;
+}
+
+.timeline-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: white;
+  border: 1px solid #e7eef5;
+  border-radius: 13px;
+  padding: 19px;
+  color: #3686c4;
+}
+
+.timeline-stat-card span {
+  color: #8495a6;
+  font-size: 12px;
+}
+
+.timeline-stat-card strong {
+  color: #29445e;
+  font-size: 25px;
+}
+
+.timeline-test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.timeline-test-card {
+  background: white;
+  border: 1px solid #e7eef5;
+  border-radius: 15px;
+  padding: 21px;
+}
+
+.timeline-test-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeline-test-heading h2 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.timeline-test-heading p {
+  margin: 0;
+  color: #899aaa;
+  font-size: 12px;
+}
+
+.timeline-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.timeline-trend.up {
+  color: #b77a2b;
+}
+
+.timeline-trend.down {
+  color: #4786b7;
+}
+
+.timeline-trend.neutral {
+  color: #8293a5;
+}
+
+.timeline-latest-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  background: #f5f9fd;
+  border-radius: 10px;
+  padding: 13px;
+  margin: 17px 0;
+}
+
+.timeline-latest-value span {
+  color: #71869a;
+  font-size: 12px;
+}
+
+.timeline-latest-value strong {
+  color: #2e7fbb;
+  font-size: 19px;
+}
+
+.timeline-latest-value small {
+  color: #899aaa;
+  font-size: 11px;
+}
+
+.timeline-records {
+  border-left: 2px solid #e2edf7;
+  margin-left: 7px;
+  padding-left: 20px;
+}
+
+.timeline-record {
+  position: relative;
+  padding: 0 0 20px;
+}
+
+.timeline-record:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-record-dot {
+  position: absolute;
+  left: -27px;
+  top: 3px;
+  width: 10px;
+  height: 10px;
+  background: #438dc8;
+  border: 3px solid #e7f2fc;
+  border-radius: 50%;
+}
+
+.timeline-record-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timeline-record-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timeline-record-top > strong {
+  color: #405b74;
+  font-size: 12px;
+}
+
+.timeline-record-content p {
+  color: #647b91;
+  font-size: 12px;
+  margin: 0;
+}
+
+.timeline-record-content p strong {
+  color: #304e69;
+}
+
+.timeline-record-content small {
+  color: #899aaa;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.timeline-status {
+  padding: 5px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.timeline-status.normal {
+  background: #eaf8f0;
+  color: #278354;
+}
+
+.timeline-status.outside {
+  background: #fff1e8;
+  color: #bd7040;
+}
+
+.timeline-status.unknown {
+  background: #f0f3f6;
+  color: #748598;
+}
+
+.timeline-empty,
+.timeline-state {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: white;
+  border: 1px solid #e7eef5;
+  border-radius: 15px;
+  padding: 25px;
+}
+
+.timeline-empty > div {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  background: #eaf4ff;
+  color: #3286c7;
+  border-radius: 15px;
+}
+
+.timeline-empty h2,
+.timeline-state h3 {
+  font-size: 17px;
+  margin: 15px 0 8px;
+}
+
+.timeline-empty p,
+.timeline-state p {
+  max-width: 400px;
+  color: #8799aa;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.timeline-error {
+  padding: 17px;
+  border-radius: 10px;
+  background: #fff0ef;
+  color: #b84444;
+  font-size: 13px;
+}
+
+.timeline-spin {
+  animation: timeline-spin 1s linear infinite;
+  color: #3286c7;
+}
+
+@keyframes timeline-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.timeline-disclaimer {
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 10px;
+  background: #fff8e9;
+  color: #82682f;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+@media (max-width: 700px) {
+  .health-timeline-page {
+    padding: 16px;
+  }
+
+  .timeline-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-header h1 {
+    font-size: 22px;
+  }
+
+  .timeline-test-card {
+    padding: 15px;
+  }
+}
