@@ -1,4 +1,6 @@
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -15,10 +17,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
+allowed_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -39,14 +50,30 @@ async def health_check():
         "application": "Aarogya Assist"
     }
 
-
 @app.get("/api/health/database")
 def database_health_check():
     try:
         with engine.connect() as connection:
-            database_name = connection.execute(
-                text("SELECT current_database()")
-            ).scalar()
+            database_type = engine.dialect.name
+
+            if database_type == "postgresql":
+                database_name = connection.execute(
+                    text("SELECT current_database()")
+                ).scalar()
+
+                schema_name = "public"
+
+            elif database_type == "mysql":
+                database_name = connection.execute(
+                    text("SELECT DATABASE()")
+                ).scalar()
+
+                schema_name = database_name
+
+            else:
+                raise ValueError(
+                    f"Unsupported database: {database_type}"
+                )
 
             required_tables = [
                 "users",
@@ -61,20 +88,14 @@ def database_health_check():
                 text("""
                     SELECT table_name
                     FROM information_schema.tables
-                    WHERE table_schema = 'public'
-                    AND table_name IN (
-                        'users',
-                        'medical_reports',
-                        'medical_parameters',
-                        'report_explanations',
-                        'conversations',
-                        'chat_messages'
-                    )
-                """)
+                    WHERE table_schema = :schema_name
+                """),
+                {"schema_name": schema_name}
             )
 
             existing_tables = sorted(
                 row[0] for row in result.fetchall()
+                if row[0] in required_tables
             )
 
             missing_tables = sorted(
@@ -83,6 +104,7 @@ def database_health_check():
 
             return {
                 "database_status": "connected",
+                "database_type": database_type,
                 "database_name": database_name,
                 "tables_found": len(existing_tables),
                 "tables_expected": len(required_tables),
@@ -93,13 +115,12 @@ def database_health_check():
 
     except Exception as error:
         print("Database health check failed:", str(error))
+
         return {
             "database_status": "error",
             "message": "Database connection failed",
             "error_type": type(error).__name__
         }
-
-
 app.include_router(reports_router)
 app.include_router(chat_router)
 app.include_router(image_analysis_router)

@@ -1,10 +1,9 @@
 
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
-import { UserRound, Mail, Lock, Save, ShieldCheck } from "lucide-react";
+import { apiFetch } from "./api";
+import { UserRound, Lock, Save, ShieldCheck } from "lucide-react";
 import "./ProfileSettings.css";
-
-const API_URL = "http://localhost:8000";
 
 export default function ProfileSettings() {
   const { token, user, updateUser, logout } = useAuth();
@@ -19,8 +18,7 @@ export default function ProfileSettings() {
   const [loading, setLoading] = useState(false);
 
   const headers = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
+    "Content-Type": "application/json"
   };
 
   const saveProfile = async (event) => {
@@ -30,14 +28,14 @@ export default function ProfileSettings() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/profile`, {
+      const response = await apiFetch("/api/auth/profile", {
         method: "PUT",
         headers,
         body: JSON.stringify({
           full_name: name.trim(),
           email: email.trim()
         })
-      });
+      }, token);
 
       const data = await response.json();
 
@@ -72,8 +70,8 @@ export default function ProfileSettings() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/auth/change-password`,
+      const response = await apiFetch(
+        "/api/auth/change-password",
         {
           method: "PUT",
           headers,
@@ -81,7 +79,8 @@ export default function ProfileSettings() {
             current_password: currentPassword,
             new_password: newPassword
           })
-        }
+        },
+        token
       );
 
       const data = await response.json();

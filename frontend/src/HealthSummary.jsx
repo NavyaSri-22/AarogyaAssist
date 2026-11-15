@@ -1,5 +1,7 @@
 
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "./AuthContext";
+import { apiFetch } from "./api";
 import {
   Activity,
   AlertTriangle,
@@ -13,9 +15,6 @@ import {
 
 import "./HealthSummary.css";
 
-const API_URL = "http://localhost:8000/api/reports";
-const USER_ID = 1;
-
 function formatDate(date) {
   if (!date) return "Date unavailable";
 
@@ -27,6 +26,7 @@ function formatDate(date) {
 }
 
 function HealthSummary() {
+  const { token } = useAuth();
   const [reports, setReports] = useState([]);
   const [timeline, setTimeline] = useState({});
   const [loading, setLoading] = useState(true);
@@ -39,8 +39,8 @@ function HealthSummary() {
     try {
       const [historyResponse, comparisonResponse] =
         await Promise.all([
-          fetch(`${API_URL}/history/${USER_ID}`),
-          fetch(`${API_URL}/compare/${USER_ID}`),
+          apiFetch("/api/reports/history", {}, token),
+          apiFetch("/api/reports/compare", {}, token),
         ]);
 
       const historyData = await historyResponse.json();

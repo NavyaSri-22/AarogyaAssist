@@ -3,15 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   Bot, Send, Plus, Sparkles, User, HeartPulse,
   Languages, AlertTriangle, MessageCircle, Trash2,
-  History, ChevronRight, LoaderCircle
+  History, LoaderCircle
 } from "lucide-react";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAuth } from "./AuthContext";
+import { apiFetch } from "./api";
 import "./ChatAssistant.css";
-
-const API_URL = "http://localhost:8000/api/chat";
-const USER_ID = 1;
 
 const suggestions = [
   "What is hemoglobin?",
@@ -21,6 +20,7 @@ const suggestions = [
 ];
 
 function ChatAssistant() {
+  const { token } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState("English");
@@ -35,9 +35,7 @@ function ChatAssistant() {
 
   const loadHistory = async () => {
     try {
-      const response = await fetch(
-        `${API_URL}/history/${USER_ID}`
-      );
+      const response = await apiFetch("/api/chat/history", {}, token);
       const data = await response.json();
 
       if (!response.ok) {
@@ -77,8 +75,10 @@ function ChatAssistant() {
     setError("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/conversation/${id}`
+      const response = await apiFetch(
+        `/api/chat/conversation/${id}`,
+        {},
+        token
       );
       const data = await response.json();
 
@@ -105,9 +105,10 @@ function ChatAssistant() {
     if (loading) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/conversation/${id}`,
-        { method: "DELETE" }
+      const response = await apiFetch(
+        `/api/chat/conversation/${id}`,
+        { method: "DELETE" },
+        token
       );
 
       const data = await response.json();
@@ -145,7 +146,7 @@ function ChatAssistant() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/message`, {
+      const response = await apiFetch("/api/chat/message", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -159,7 +160,7 @@ function ChatAssistant() {
             content: item.content
           }))
         })
-      });
+      }, token);
 
       const data = await response.json();
 

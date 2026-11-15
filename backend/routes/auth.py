@@ -128,7 +128,7 @@ def register_user(
     hashed_password = password_hash.hash(request.password)
 
     try:
-        result = db.execute(
+        db.execute(
             text("""
                 INSERT INTO users
                 (full_name, email, password_hash)
@@ -142,9 +142,15 @@ def register_user(
             }
         )
 
-        db.commit()
+        user_id = db.execute(
+            text("""
+                SELECT user_id FROM users
+                WHERE email = :email
+            """),
+            {"email": email}
+        ).scalar_one()
 
-        user_id = result.lastrowid
+        db.commit()
 
     except Exception:
         db.rollback()

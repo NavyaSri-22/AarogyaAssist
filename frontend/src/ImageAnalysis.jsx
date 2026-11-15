@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAuth } from "./AuthContext";
+import { apiFetch } from "./api";
 import {
   Image as ImageIcon,
   Upload,
@@ -14,9 +16,8 @@ import {
 } from "lucide-react";
 import "./ImageAnalysis.css";
 
-const API_URL = "http://localhost:8000";
-
 function ImageAnalysis() {
+  const { token } = useAuth();
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
   const [question, setQuestion] = useState("");
@@ -95,12 +96,13 @@ function ImageAnalysis() {
     formData.append("symptoms", symptomInformation);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/image-analysis/analyze`,
+      const response = await apiFetch(
+        "/api/image-analysis/analyze",
         {
           method: "POST",
           body: formData
-        }
+        },
+        token
       );
 
       const data = await response.json();

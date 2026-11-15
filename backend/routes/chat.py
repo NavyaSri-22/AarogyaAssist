@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from groq import Groq
 
-from database import get_db
+from database import get_db, insert_and_return_id
+from routes.auth import get_current_user
 
 load_dotenv()
 
@@ -17,10 +18,6 @@ router = APIRouter(prefix="/api/chat", tags=["AI Assistant"])
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-
-# Temporary development user.
-# Replace this with the authenticated user's ID when login is implemented.
-DEMO_USER_ID = 1
 
 EMERGENCY_PHRASES = [
     "chest pain",
@@ -63,7 +60,7 @@ class NewConversationRequest(BaseModel):
     language: Literal["English", "Hindi", "Telugu"] = "English"
 
 
-def check_conversation(db: Session, conversation_id: int):
+def check_conversation(db: Session, conversation_id: int, user_id: int):
     result = db.execute(
         text("""
             SELECT conversation_id
@@ -73,7 +70,7 @@ def check_conversation(db: Session, conversation_id: int):
         """),
         {
             "conversation_id": conversation_id,
-            "user_id": DEMO_USER_ID,
+            "user_id": user_id,
         },
     ).mappings().first()
 
@@ -86,21 +83,40 @@ def check_conversation(db: Session, conversation_id: int):
     return result
 
 
-def create_conversation(db: Session, title: str, language: str):
-    result = db.execute(
-        text("""
-            INSERT INTO conversations (user_id, title, language)
-            VALUES (:user_id, :title, :language)
-        """),
-        {
-            "user_id": DEMO_USER_ID,
+
+def create_conversation(
+    db: Session,
+    title: str,
+    language: str,
+    user_id: int,
+):
+    try:
+        parameters = {
+            "user_id": user_id,
             "title": title[:255] or "New Conversation",
             "language": language,
-        },
-    )
+        }
 
-    db.commit()
-    return result.lastrowid
+        conversation_id = insert_and_return_id(
+            db,
+            text("""
+                INSERT INTO conversations (user_id, title, language)
+                VALUES (:user_id, :title, :language)
+                RETURNING conversation_id
+            """),
+            text("""
+                INSERT INTO conversations (user_id, title, language)
+                VALUES (:user_id, :title, :language)
+            """),
+            parameters,
+        )
+
+        db.commit()
+        return conversation_id
+
+    except Exception:
+        db.rollback()
+        raise
 
 
 def save_message(
@@ -130,12 +146,14 @@ def save_message(
 @router.post("/new")
 async def new_conversation(
     request: NewConversationRequest,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     conversation_id = create_conversation(
         db,
         request.title,
         request.language,
+        current_user["user_id"],
     )
 
     return {
@@ -146,13 +164,12 @@ async def new_conversation(
     }
 
 
-@router.get("/history/{user_id}")
+@router.get("/history")
 async def get_chat_history(
-    user_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if user_id != DEMO_USER_ID:
-        raise HTTPException(status_code=404, detail="User not found.")
+    user_id = current_user["user_id"]
 
     rows = db.execute(
         text("""
@@ -186,9 +203,10 @@ async def get_chat_history(
 @router.get("/conversation/{conversation_id}")
 async def get_conversation(
     conversation_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    check_conversation(db, conversation_id)
+    check_conversation(db, conversation_id, current_user["user_id"])
 
     conversation = db.execute(
         text("""
@@ -218,9 +236,11 @@ async def get_conversation(
 @router.delete("/conversation/{conversation_id}")
 async def delete_conversation(
     conversation_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    check_conversation(db, conversation_id)
+    user_id = current_user["user_id"]
+    check_conversation(db, conversation_id, user_id)
 
     db.execute(
         text("""
@@ -230,7 +250,7 @@ async def delete_conversation(
         """),
         {
             "conversation_id": conversation_id,
-            "user_id": DEMO_USER_ID,
+            "user_id": user_id,
         },
     )
 
@@ -245,9 +265,11 @@ async def delete_conversation(
 @router.post("/message")
 async def chat_message(
     request: ChatRequest,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     user_message = request.message.strip()
+    user_id = current_user["user_id"]
 
     if not user_message:
         raise HTTPException(
@@ -261,9 +283,10 @@ async def chat_message(
             db,
             user_message[:60],
             request.language,
+            user_id,
         )
     else:
-        check_conversation(db, request.conversation_id)
+        check_conversation(db, request.conversation_id, user_id)
         conversation_id = request.conversation_id
 
     # Save the user's message.

@@ -2,9 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Activity, TrendingUp, TrendingDown, Minus, RefreshCw, FileHeart } from "lucide-react";
 import { useAuth } from "./AuthContext";
+import { apiFetch } from "./api";
 import "./HealthTimeline.css";
-
-const API_URL = "http://localhost:8000";
 
 function formatDate(value) {
   if (!value) return "Date unavailable";
@@ -68,11 +67,7 @@ export default function HealthTimeline() {
       setError("");
 
       try {
-        const response = await fetch(`${API_URL}/api/reports/timeline`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const response = await apiFetch("/api/reports/timeline", {}, token);
 
         const data = await response.json();
 

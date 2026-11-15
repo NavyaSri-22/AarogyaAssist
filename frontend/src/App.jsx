@@ -9,6 +9,7 @@ import remarkGfm from "remark-gfm";
 import { useEffect, useRef, useState } from "react";
 import ChatAssistant from "./ChatAssistant";
 import HealthSummary from "./HealthSummary";
+import { apiFetch } from "./api";
 
 import {
   Activity,
@@ -216,14 +217,13 @@ function ReportResults({
 }
 
 function HealthTimeline() {
+  const { token } = useAuth();
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [timeline, setTimeline] = useState({});
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const userId = 1; // Temporary development user
 
   useEffect(() => {
     const loadTimeline = async () => {
@@ -233,12 +233,8 @@ function HealthTimeline() {
       try {
         const [historyResponse, comparisonResponse] =
           await Promise.all([
-            fetch(
-              `http://localhost:8000/api/reports/history/${userId}`
-            ),
-            fetch(
-              `http://localhost:8000/api/reports/compare/${userId}`
-            )
+            apiFetch("/api/reports/history", {}, token),
+            apiFetch("/api/reports/compare", {}, token)
           ]);
 
         const historyData = await historyResponse.json();
@@ -277,8 +273,10 @@ function HealthTimeline() {
     setError("");
 
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/reports/${reportId}`
+      const response = await apiFetch(
+        `/api/reports/${reportId}`,
+        {},
+        token
       );
 
       const data = await response.json();
@@ -572,7 +570,7 @@ function HealthTimeline() {
 
 
 function DashboardApp() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const [activePage, setActivePage] = useState("Overview");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -602,8 +600,8 @@ const loadDashboardStats = async () => {
 
   try {
     const [historyResponse, comparisonResponse] = await Promise.all([
-      fetch("http://localhost:8000/api/reports/history/1"),
-      fetch("http://localhost:8000/api/reports/compare/1")
+      apiFetch("/api/reports/history", {}, token),
+      apiFetch("/api/reports/compare", {}, token)
     ]);
 
     const historyData = await historyResponse.json();
@@ -675,12 +673,13 @@ useEffect(() => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        "http://localhost:8000/api/reports/upload",
+      const response = await apiFetch(
+        "/api/reports/upload",
         {
           method: "POST",
           body: formData,
-        }
+        },
+        token
       );
 
       const data = await response.json().catch(() => ({}));
@@ -717,8 +716,8 @@ useEffect(() => {
     setExplanation("");
 
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/reports/explain",
+      const response = await apiFetch(
+        "/api/reports/explain",
         {
           method: "POST",
           headers: {
@@ -730,7 +729,8 @@ useEffect(() => {
             medical_parameters: uploadedReport.medical_parameters,
             report_id: uploadedReport.report_id,
           }),
-        }
+        },
+        token
       );
 
       const data = await response.json().catch(() => ({}));
@@ -1315,8 +1315,12 @@ useEffect(() => {
 }
 
 function App() {
-  const { token } = useAuth();
+  const { token, authLoading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
+
+  if (authLoading) {
+    return <div className="auth-page" aria-live="polite">Loading your workspace...</div>;
+  }
 
   if (!token) {
     return showRegister ? (

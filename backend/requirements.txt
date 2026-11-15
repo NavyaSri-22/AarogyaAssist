@@ -6,6 +6,7 @@ uvicorn[standard]
 python-multipart
 pymupdf
 pandas
+numpy
 pydantic-settings
 groq
 python-dotenv

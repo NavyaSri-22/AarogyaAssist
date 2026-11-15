@@ -59,3 +59,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def insert_and_return_id(db, postgres_sql, mysql_sql, parameters):
+    """Run an insert and return its generated ID on supported databases."""
+    dialect = db.get_bind().dialect.name
+
+    if dialect == "postgresql":
+        return db.execute(
+            postgres_sql,
+            parameters
+        ).scalar_one()
+
+    if dialect == "mysql":
+        result = db.execute(mysql_sql, parameters)
+        return result.lastrowid
+
+    raise RuntimeError("Unsupported database dialect.")

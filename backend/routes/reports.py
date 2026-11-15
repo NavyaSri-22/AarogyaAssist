@@ -1,12 +1,14 @@
 from routes.auth import get_current_user
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
+import logging
+
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from database import get_db
+from database import get_db, insert_and_return_id
 
 from services.ocr_service import extract_pdf_text
 from services.medical_parser import extract_medical_parameters
@@ -17,6 +19,8 @@ router = APIRouter(
     prefix="/api/reports",
     tags=["Medical Reports"]
 )
+
+logger = logging.getLogger(__name__)
 
 
 # -----------------------------------------
@@ -50,9 +54,10 @@ class ExplanationRequest(BaseModel):
 @router.post("/upload")
 async def upload_medical_report(
     file: UploadFile = File(...),
-    user_id: int = Form(1),
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    user_id = current_user["user_id"]
 
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
@@ -100,7 +105,14 @@ async def upload_medical_report(
         )
 
         # Save report and parameters in one transaction
-        report_result = db.execute(
+        report_id = insert_and_return_id(
+            db,
+            text("""
+                INSERT INTO medical_reports
+                (user_id, filename, report_type)
+                VALUES (:user_id, :filename, :report_type)
+                RETURNING report_id
+            """),
             text("""
                 INSERT INTO medical_reports
                 (user_id, filename, report_type)
@@ -113,8 +125,6 @@ async def upload_medical_report(
             }
         )
 
-        report_id = report_result.lastrowid
-
         for parameter in medical_parameters:
 
             reference_range = parameter.get("reference_range") or {}
@@ -125,7 +135,7 @@ async def upload_medical_report(
                     (
                         report_id,
                         test_name,
-                        `value`,
+                        value,
                         unit,
                         reference_min,
                         reference_max,
@@ -170,18 +180,19 @@ async def upload_medical_report(
         db.rollback()
         raise
 
-    except ValueError as error:
+    except ValueError:
         db.rollback()
         raise HTTPException(
             status_code=422,
-            detail=str(error)
+            detail="Unable to process this PDF. Please upload a valid report."
         )
 
-    except Exception as error:
+    except Exception:
         db.rollback()
+        logger.exception("Unable to save medical report")
         raise HTTPException(
             status_code=500,
-            detail=f"Unable to save medical report: {str(error)}"
+            detail="Unable to save the medical report. Please try again."
         )
 
 
@@ -192,6 +203,7 @@ async def upload_medical_report(
 @router.post("/explain")
 def explain_medical_report(
     request: ExplanationRequest,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
 
@@ -220,6 +232,26 @@ def explain_medical_report(
         )
 
     try:
+        if request.report_id is not None:
+            report = db.execute(
+                text("""
+                    SELECT report_id
+                    FROM medical_reports
+                    WHERE report_id = :report_id
+                      AND user_id = :user_id
+                """),
+                {
+                    "report_id": request.report_id,
+                    "user_id": current_user["user_id"]
+                }
+            ).fetchone()
+
+            if not report:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Medical report not found."
+                )
+
         parameters = [
             item.model_dump()
             for item in request.medical_parameters
@@ -234,23 +266,14 @@ def explain_medical_report(
 
         # Save explanation when a report ID is supplied
         if request.report_id is not None:
-
-            report = db.execute(
+            explanation_id = insert_and_return_id(
+                db,
                 text("""
-                    SELECT report_id
-                    FROM medical_reports
-                    WHERE report_id = :report_id
+                    INSERT INTO report_explanations
+                    (report_id, language, explanation)
+                    VALUES (:report_id, :language, :explanation)
+                    RETURNING explanation_id
                 """),
-                {"report_id": request.report_id}
-            ).fetchone()
-
-            if not report:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Medical report not found."
-                )
-
-            saved_explanation = db.execute(
                 text("""
                     INSERT INTO report_explanations
                     (report_id, language, explanation)
@@ -263,7 +286,6 @@ def explain_medical_report(
                 }
             )
 
-            explanation_id = saved_explanation.lastrowid
             db.commit()
 
         return {
@@ -277,51 +299,39 @@ def explain_medical_report(
         db.rollback()
         raise
 
-    except ValueError as error:
+    except ValueError:
         db.rollback()
         raise HTTPException(
             status_code=500,
-            detail=str(error)
+            detail="Unable to generate the report explanation. Please try again."
         )
 
-    except RuntimeError as error:
+    except RuntimeError:
         db.rollback()
         raise HTTPException(
             status_code=502,
-            detail=str(error)
+            detail="The AI explanation service is temporarily unavailable."
         )
 
-    except Exception as error:
+    except Exception:
         db.rollback()
+        logger.exception("Unable to process medical report explanation")
         raise HTTPException(
             status_code=500,
-            detail=f"Unable to process explanation: {str(error)}"
+            detail="Unable to process the report explanation. Please try again."
         )
 
 # -----------------------------------------
 # HEALTH TIMELINE - REPORT HISTORY
 # -----------------------------------------
 
-@router.get("/history/{user_id}")
+@router.get("/history")
 def get_report_history(
-    user_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
-        user = db.execute(
-            text("""
-                SELECT user_id
-                FROM users
-                WHERE user_id = :user_id
-            """),
-            {"user_id": user_id}
-        ).fetchone()
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found."
-            )
+        user_id = current_user["user_id"]
 
         reports = db.execute(
             text("""
@@ -348,10 +358,11 @@ def get_report_history(
     except HTTPException:
         raise
 
-    except Exception as error:
+    except Exception:
+        logger.exception("Unable to load report history")
         raise HTTPException(
             status_code=500,
-            detail=str(error)
+            detail="Unable to load report history. Please try again."
         )
 
 
@@ -359,9 +370,10 @@ def get_report_history(
 # GET INDIVIDUAL REPORT DETAILS
 # -----------------------------------------
 
-@router.get("/{report_id}")
+@router.get("/{report_id:int}")
 def get_report_details(
     report_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
@@ -375,8 +387,12 @@ def get_report_details(
                     uploaded_at
                 FROM medical_reports
                 WHERE report_id = :report_id
+                  AND user_id = :user_id
             """),
-            {"report_id": report_id}
+            {
+                "report_id": report_id,
+                "user_id": current_user["user_id"]
+            }
         ).mappings().first()
 
         if not report:
@@ -390,7 +406,7 @@ def get_report_details(
                 SELECT
                     parameter_id,
                     test_name,
-                    `value`,
+                    value,
                     unit,
                     reference_min,
                     reference_max,
@@ -415,10 +431,11 @@ def get_report_details(
     except HTTPException:
         raise
 
-    except Exception as error:
+    except Exception:
+        logger.exception("Unable to load medical report")
         raise HTTPException(
             status_code=500,
-            detail=str(error)
+            detail="Unable to load the medical report. Please try again."
         )
 
 
@@ -426,26 +443,13 @@ def get_report_details(
 # HEALTH TIMELINE - PARAMETER COMPARISON
 # -----------------------------------------
 
-@router.get("/compare/{user_id}")
+@router.get("/compare")
 def compare_medical_reports(
-    user_id: int,
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
-        user = db.execute(
-            text("""
-                SELECT user_id
-                FROM users
-                WHERE user_id = :user_id
-            """),
-            {"user_id": user_id}
-        ).fetchone()
-
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found."
-            )
+        user_id = current_user["user_id"]
 
         records = db.execute(
             text("""
@@ -454,7 +458,7 @@ def compare_medical_reports(
                     mr.filename,
                     mr.uploaded_at,
                     mp.test_name,
-                    mp.`value`,
+                    mp.value,
                     mp.unit,
                     mp.reference_min,
                     mp.reference_max,
@@ -499,10 +503,11 @@ def compare_medical_reports(
     except HTTPException:
         raise
 
-    except Exception as error:
+    except Exception:
+        logger.exception("Unable to compare medical reports")
         raise HTTPException(
             status_code=500,
-            detail=str(error)
+            detail="Unable to compare reports. Please try again."
         )
 
 @router.get("/timeline")

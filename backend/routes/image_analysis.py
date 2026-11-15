@@ -1,6 +1,7 @@
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 
+from routes.auth import get_current_user
 from services.image_analysis import analyze_medical_image
 
 router = APIRouter(
@@ -13,7 +14,8 @@ router = APIRouter(
 async def analyze_image(
     file: UploadFile = File(...),
     question: str = Form(""),
-    symptoms: str = Form("")
+    symptoms: str = Form(""),
+    current_user: dict = Depends(get_current_user),
 ):
     allowed_types = {
         "image/jpeg",
