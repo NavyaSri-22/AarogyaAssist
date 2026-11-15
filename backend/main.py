@@ -1,15 +1,22 @@
-from routes.auth import router as auth_router
-from routes.image_analysis import router as image_analysis_router
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
+from database import engine
+
+from routes.auth import router as auth_router
+from routes.image_analysis import router as image_analysis_router
 from routes.reports import router as reports_router
 from routes.chat import router as chat_router
+
+
 app = FastAPI(
     title="Aarogya Assist API",
     description="AI-powered healthcare report intelligence platform",
     version="1.0.0"
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +41,68 @@ async def health_check():
         "status": "healthy",
         "application": "Aarogya Assist"
     }
+
+
+@app.get("/api/health/database")
+def database_health_check():
+    try:
+        with engine.connect() as connection:
+
+            database_name = connection.execute(
+                text("SELECT current_database()")
+            ).scalar()
+
+            required_tables = [
+                "users",
+                "medical_reports",
+                "medical_parameters",
+                "report_explanations",
+                "conversations",
+                "chat_messages"
+            ]
+
+            result = connection.execute(
+                text("""
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    AND table_name IN (
+                        'users',
+                        'medical_reports',
+                        'medical_parameters',
+                        'report_explanations',
+                        'conversations',
+                        'chat_messages'
+                    )
+                """)
+            )
+
+            existing_tables = sorted(
+                row[0] for row in result.fetchall()
+            )
+
+            missing_tables = sorted(
+                set(required_tables) - set(existing_tables)
+            )
+
+            return {
+                "database_status": "connected",
+                "database_name": database_name,
+                "tables_found": len(existing_tables),
+                "tables_expected": len(required_tables),
+                "existing_tables": existing_tables,
+                "missing_tables": missing_tables,
+                "all_tables_ready": len(missing_tables) == 0
+            }
+
+    except Exception as error:
+        print("Database health check failed:", str(error))
+
+        return {
+            "database_status": "error",
+            "message": "Database connection failed",
+            "error_type": type(error).__name__
+        }
 
 
 app.include_router(reports_router)
