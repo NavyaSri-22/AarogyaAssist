@@ -4,19 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from database import engine
-
 from routes.auth import router as auth_router
 from routes.image_analysis import router as image_analysis_router
 from routes.reports import router as reports_router
 from routes.chat import router as chat_router
-
 
 app = FastAPI(
     title="Aarogya Assist API",
     description="AI-powered healthcare report intelligence platform",
     version="1.0.0"
 )
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,7 +44,6 @@ async def health_check():
 def database_health_check():
     try:
         with engine.connect() as connection:
-
             database_name = connection.execute(
                 text("SELECT current_database()")
             ).scalar()
@@ -97,7 +93,6 @@ def database_health_check():
 
     except Exception as error:
         print("Database health check failed:", str(error))
-
         return {
             "database_status": "error",
             "message": "Database connection failed",
